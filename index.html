@@ -45,6 +45,14 @@ tailwind.config = {
   .result-card { animation: slideUp 0.6s ease forwards; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
   .scroll-smooth { scroll-behavior: smooth; }
+  @media (min-width: 768px) {
+    .stair-step-1 { margin-left: 3%; }
+    .stair-step-2 { margin-left: 6%; }
+    .stair-step-3 { margin-left: 9%; }
+    .stair-step-4 { margin-left: 12%; }
+    .stair-step-5 { margin-left: 15%; }
+  }
+  .stair-section { overflow-x: hidden; }
 </style>
 </head>
 <body class="bg-white text-gray-800 scroll-smooth">
@@ -363,7 +371,7 @@ function Header() {
 // 階段俯瞰図
 function StairOverview() {
   return (
-    <section id="levels" className="py-16 md:py-24 bg-gray-50">
+    <section id="levels" className="py-16 md:py-24 bg-gray-50 stair-section">
       <div className="max-w-6xl mx-auto px-6">
         <h2 className="text-2xl md:text-3xl font-bold text-slate mb-3">AI駆動開発 レベルマップ</h2>
         <p className="text-gray-500 mb-12 max-w-xl">あなたの現在地を確認し、次に進むべきステップを見つけてください。</p>
@@ -375,8 +383,7 @@ function StairOverview() {
             return (
               <div
                 key={lv.level}
-                className="step-card relative cursor-pointer"
-                style={{ marginLeft: `${i * 3}%` }}
+                className={`step-card relative cursor-pointer stair-step-${i}`}
               >
                 <div
                   className="flex items-stretch rounded-lg overflow-hidden shadow-sm border-l-4"
@@ -401,7 +408,7 @@ function StairOverview() {
                         <p className="text-sm text-gray-500 mt-1">{lv.desc}</p>
                       </div>
                       <div
-                        className="inline-block px-4 py-1.5 rounded-full text-xs font-bold text-white whitespace-nowrap self-start"
+                        className="inline-block px-4 py-1.5 rounded-full text-xs font-bold text-white md:whitespace-nowrap self-start"
                         style={{ background: lv.color }}
                       >
                         {lv.training}
@@ -655,7 +662,7 @@ function Catalog() {
                   <p className="text-xs text-gray-400 mb-2 font-medium">研修ゴール</p>
                   <ul className="space-y-1.5">
                     {t.goals.map((g, i) => (
-                      <li key={i} className="text-xs text-gray-600 flex gap-2">
+                      <li key={i} className="text-xs md:text-xs text-gray-600 flex gap-2" style={{fontSize: '13px'}}>
                         <span className="text-xs mt-0.5 flex-shrink-0" style={{ color: t.color }}>&#9679;</span>
                         <span>{g}</span>
                       </li>
@@ -721,8 +728,8 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-sm">&copy; 2026 Givery, Inc. All rights reserved.</p>
         <div className="flex gap-6 text-sm">
-          <a href="https://forms.gle/6FoUBDGhdAmQ3U7DA" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">セミナー申し込み</a>
-          <a href="https://givery.co.jp" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">会社概要</a>
+          <a href="https://forms.gle/6FoUBDGhdAmQ3U7DA" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors py-4">セミナー申し込み</a>
+          <a href="https://givery.co.jp" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors py-4">会社概要</a>
         </div>
       </div>
     </footer>
