@@ -347,21 +347,34 @@ const LEVELS = [
 function Header() {
   return (
     <header className="bg-gradient-to-br from-slate to-navy text-white">
-      <div className="max-w-6xl mx-auto px-6 py-16 md:py-24">
-        <p className="text-sm tracking-widest text-gray-300 mb-4 uppercase">Givery AI-Driven Development</p>
-        <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-6">
-          あなたに最適な<br/>AI駆動開発研修を見つける
-        </h1>
-        <p className="text-lg text-gray-300 max-w-2xl leading-relaxed mb-8">
-          やりたいことから逆算して学ぶ。レベル別・目的別に選べる実践型エンジニア研修のナビゲーター。
-        </p>
-        <div className="flex flex-wrap gap-4">
-          <a href="#diagnosis" className="inline-block bg-accent hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-colors">
-            診断を始める
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="flex items-center justify-between py-5 border-b border-white/10">
+          <img src="./logo.webp" alt="Givery" className="h-8 md:h-10 brightness-0 invert" />
+          <a
+            href="https://forms.gle/cZH5yACcHfV6wSJW6"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-accent hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-lg text-sm transition-colors"
+          >
+            研修に申し込む
           </a>
-          <a href="#levels" className="inline-block bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-3 rounded-lg border border-white/30 transition-colors">
-            レベル一覧を見る
-          </a>
+        </div>
+        <div className="py-16 md:py-20">
+          <p className="text-sm tracking-widest text-gray-300 mb-4 uppercase">Givery AI-Driven Development</p>
+          <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-6">
+            あなたに最適な<br/>AI駆動開発研修を見つける
+          </h1>
+          <p className="text-lg text-gray-300 max-w-2xl leading-relaxed mb-8">
+            やりたいことから逆算して学ぶ。レベル別・目的別に選べる実践型エンジニア研修のナビゲーター。
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <a href="#diagnosis" className="inline-block bg-accent hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-colors">
+              診断を始める
+            </a>
+            <a href="#levels" className="inline-block bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-3 rounded-lg border border-white/30 transition-colors">
+              レベル一覧を見る
+            </a>
+          </div>
         </div>
       </div>
     </header>
