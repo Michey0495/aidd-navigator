@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI駆動開発 研修ナビゲーター | Givery</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy: '#1E2761',
+        deepblue: '#2D5699',
+        accent: '#E67E22',
+        coral: '#E74C3C',
+        teal: '#1ABC9C',
+        forest: '#27AE60',
+        purple: '#8E44AD',
+        slate: '#2C3E50',
+      },
+      fontFamily: {
+        sans: ['"Noto Sans JP"', '"Hiragino Kaku Gothic ProN"', 'sans-serif'],
+      }
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Noto Sans JP", sans-serif; }
+  .step-card { transition: all 0.3s ease; }
+  .step-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+  .fade-in { animation: fadeIn 0.5s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .pulse-border { animation: pulseBorder 2s infinite; }
+  @keyframes pulseBorder { 0%,100% { box-shadow: 0 0 0 0 rgba(230,126,34,0.4); } 50% { box-shadow: 0 0 0 8px rgba(230,126,34,0); } }
+  .stair-container { position: relative; }
+  .diagnosis-option { transition: all 0.2s ease; }
+  .diagnosis-option:hover { transform: scale(1.02); }
+  .result-card { animation: slideUp 0.6s ease forwards; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+  .scroll-smooth { scroll-behavior: smooth; }
+</style>
+</head>
+<body class="bg-white text-gray-800 scroll-smooth">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// 研修データ
+const TRAININGS = {
+  vibe: {
+    id: 'vibe',
+    name: 'バイブコーディング基礎研修',
+    level: 1,
+    duration: '1日間',
+    target: '全職種',
+    color: '#1ABC9C',
+    description: 'AIを使ってプログラミングを行わずにアプリやシステムを開発するバイブコーディング手法を学ぶ。便利さの裏にあるリスクや脆弱性について正しく学び、正しく扱えるようにする。',
+    goals: [
+      'AIに話しかけるだけでUIやプロトタイプが生成できることを体験する',
+      'バイブコーディングの落とし穴とリスクを理解する',
+      '6STEPバイブコーディングで議事録コンバーターを完成させる',
+    ],
+  },
+  spec: {
+    id: 'spec',
+    name: 'AI駆動開発基礎（仕様駆動開発）',
+    level: 2,
+    duration: '1-2日間',
+    target: 'PM/PL経験者 / AI駆動開発に興味がある全職種',
+    color: '#3498DB',
+    description: 'VSCodeなどの開発ツールを用いて、生成AIを活用した安全かつ効果的な開発手法を学ぶ。AIを用いた新しい開発手法をハンズオンを通して学び、動く成果物を持って帰る。',
+    goals: [
+      '仕様書を書いてからAIに実装させるフローを習得する',
+      'Spec-kitなどのフレームワークを理解する',
+      'テスト駆動開発とAIの組み合わせを実践する',
+    ],
+  },
+  context: {
+    id: 'context',
+    name: 'Cursorを用いたコンテキストエンジニアリング',
+    level: 3,
+    duration: '1日間',
+    target: 'エンジニア未経験者から',
+    color: '#9B59B6',
+    description: 'Cursorを業務パートナーとして使いこなせるようになる。大規模・並列での資料作成や開発手法を理解する。',
+    goals: [
+      '@記法、.cursorrules、Notepads、Agentモードを使いこなす',
+      'MCPの概要と自社サーバー構築の可能性を理解する',
+      'Rules/Commands/Skillsを作成・活用できるようになる',
+    ],
+  },
+  ccBasic: {
+    id: 'ccBasic',
+    name: 'Claude Code活用入門',
+    level: 4,
+    duration: '1-2日間',
+    target: 'エンジニア経験者',
+    color: '#E67E22',
+    description: 'Claude Codeを用いた基本的なAI駆動開発手法を学び、実践的かつ効率的な開発手法を理解する。Claude Codeの使い方のベストプラクティスを体験しながら学ぶ。',
+    goals: [
+      'CLAUDE.mdの設計と育て方を習得する',
+      'カスタムコマンドやサブエージェントの使い分けを理解する',
+      'プロジェクト初期化から設計レビューまでの正しいフローを実践する',
+    ],
+  },
+  ccAdvanced: {
+    id: 'ccAdvanced',
+    name: 'Claude Code活用実践',
+    level: 5,
+    duration: '1-2日間',
+    target: 'エンジニア経験者（入門編の受講が必須）',
+    color: '#E74C3C',
+    description: 'Claude Codeを活用し、実際に動作するアプリケーションを開発しながら実践的な活用方法を学ぶ。SkillsやCLAUDE.mdの育て方や活用時の効果を体験を通して学ぶ。',
+    goals: [
+      'Skills作成と共有でチーム全体の生産性を上げる',
+      'SubAgentsによる並列タスク実行を実践する',
+      'Hooks/自動テスト/ドキュメント自動生成を組み込む',
+    ],
+  },
+  uiux: {
+    id: 'uiux',
+    name: 'AI駆動UI/UX',
+    level: 3,
+    duration: '1日間',
+    target: 'デザイナー経験者 / PM/PL経験者',
+    color: '#E91E63',
+    description: 'AI駆動開発を行う際、思うようなUI/UXを実装するための手法を学ぶ。Figmaなどを用いたデザインの綿密な指定方法と、AIにもたせたナレッジに沿ったUI/UX生成を行う。',
+    goals: [
+      'AIに精緻なUI/UXを指示する方法を習得する',
+      'Figmaとの連携手法を学ぶ',
+      'デザインシステムをAIに理解させる方法を実践する',
+    ],
+  },
+  governance: {
+    id: 'governance',
+    name: '生成AIガバナンス研修',
+    level: 0,
+    duration: '1日間',
+    target: '全職種',
+    color: '#607D8B',
+    description: '生成AIを使用する上で重要であるリスク、コンプライアンス、ガバナンスについてユースケースと合わせて学ぶ。研修の最後にアセスメントを実施する。',
+    goals: [
+      '生成AI利用時のリスクを正しく理解する',
+      'コンプライアンス/ガバナンスの基礎を習得する',
+      '自社でのAI活用ガイドラインを策定できるようになる',
+    ],
+  },
+  prompt: {
+    id: 'prompt',
+    name: 'プロンプトエンジニアリング研修',
+    level: 0,
+    duration: '1日間',
+    target: '全職種',
+    color: '#795548',
+    description: '生成AIを自身の業務で実践的に活用するために必要な前提知識や活用ノウハウを身につける。プロンプトのテクニックだけでなく、AIの特性やリスクについても基本的な理解を習得できる。',
+    goals: [
+      'プロンプトの基本パターンとテクニックを習得する',
+      'AIの特性とリスクを理解する',
+      '自身の業務でAIを活用する実践力を身につける',
+    ],
+  },
+  gemini: {
+    id: 'gemini',
+    name: 'Geminiフル活用',
+    level: 1,
+    duration: '1日間',
+    target: 'GoogleWS環境の方',
+    color: '#4285F4',
+    description: 'GoogleWS環境における生成AIをフル活用するための幅広い知識と技術を体験しながら学ぶ。Gemini, Gem, NotebookLM, GASなど。',
+    goals: [
+      'Google Workspace上のAI機能を網羅的に理解する',
+      'Gemini/NotebookLM/GASを実務で活用できるようになる',
+      'GoogleWS環境でのAI活用のベストプラクティスを習得する',
+    ],
+  },
+};
+
+// 診断の質問データ
+const QUESTIONS = [
+  {
+    id: 1,
+    text: '生成AI（ChatGPT、Gemini、Claudeなど）を日常的に使っていますか？',
+    options: [
+      { label: 'ほとんど使ったことがない', next: 'result_l0' },
+      { label: 'たまに質問する程度', next: 2 },
+      { label: '毎日のように使っている', next: 3 },
+    ],
+  },
+  {
+    id: 2,
+    text: 'AIを使って何か「モノ」を作ったことはありますか？（資料、コード、画像など）',
+    options: [
+      { label: 'まだない', next: 'result_l1' },
+      { label: 'チャットで文章や資料を作ったことはある', next: 'result_l1' },
+      { label: 'コードやアプリを生成させたことがある', next: 3 },
+    ],
+  },
+  {
+    id: 3,
+    text: 'AIにコードやアプリを作らせるとき、事前に仕様書や設計書を準備していますか？',
+    options: [
+      { label: '特に準備せず「こんなの作って」と伝えている', next: 'result_l1' },
+      { label: '簡単な要件は整理するが、詳細な仕様書は書かない', next: 'result_l2' },
+      { label: '仕様書やルールファイルを用意してAIに渡している', next: 4 },
+    ],
+  },
+  {
+    id: 4,
+    text: 'CursorやClaude Codeなどの「AIエージェントツール」を使ったことはありますか？',
+    options: [
+      { label: '名前は知っているが使ったことはない', next: 'result_l3' },
+      { label: '使ったことはあるが、うまく使いこなせていない', next: 'result_l3' },
+      { label: '日常的に使っている', next: 5 },
+    ],
+  },
+  {
+    id: 5,
+    text: 'CLAUDE.mdやSkills、SubAgentsなどの高度な機能を活用していますか？',
+    options: [
+      { label: '基本的なチャットやコード生成が中心', next: 'result_l4' },
+      { label: 'CLAUDE.mdやルール設定は使っている', next: 'result_l4' },
+      { label: 'Skills作成やSubAgents並列実行も活用している', next: 'result_l5' },
+    ],
+  },
+];
+
+// 診断結果データ
+const RESULTS = {
+  result_l0: {
+    level: 0,
+    title: 'まずはAIに触れるところから',
+    message: '環境を整え、AIになんでも問いかけてみるところからスタートしましょう。生成AIの基本的な使い方とリスクを理解することが第一歩です。',
+    recommended: ['prompt', 'governance', 'gemini'],
+    color: '#607D8B',
+  },
+  result_l1: {
+    level: 1,
+    title: 'バイブコーディングで「作る体験」を',
+    message: 'とにかく使う機会を増やし、欲しいものがすぐ作れることを体感しましょう。まずはAIと対話しながらプロトタイプを作る経験が大切です。',
+    recommended: ['vibe'],
+    color: '#1ABC9C',
+  },
+  result_l2: {
+    level: 2,
+    title: '仕様駆動で「使えるもの」を作る',
+    message: '自身の業務やチームでAIの力をしっかり引き出すフェーズです。仕様書を先に書き、AIに正確に指示を出す方法を学びましょう。',
+    recommended: ['spec'],
+    color: '#3498DB',
+  },
+  result_l3: {
+    level: 3,
+    title: 'コンテキストエンジニアリングで能力を引き出す',
+    message: 'AIエージェントの能力を最大限引き出すための新しい考え方を学ぶ段階です。AIにプロジェクトの文脈を正しく渡す技術が品質を左右します。',
+    recommended: ['context', 'uiux'],
+    color: '#9B59B6',
+  },
+  result_l4: {
+    level: 4,
+    title: 'Claude Codeで自律型開発を',
+    message: 'Claude Codeの機能を使いこなして生産性を最大化しましょう。CLAUDE.md設計、コマンド/ルール、サブエージェントの基礎を固めます。',
+    recommended: ['ccBasic'],
+    color: '#E67E22',
+  },
+  result_l5: {
+    level: 5,
+    title: '最高のAIパートナーを育てる',
+    message: 'Claude Codeを最高のパートナーとして仕上げる実践フェーズです。Skills共有やHooks自動化でチーム全体を底上げする段階に来ています。',
+    recommended: ['ccAdvanced'],
+    color: '#E74C3C',
+  },
+};
+
+// 階段レベルデータ
+const LEVELS = [
+  {
+    level: 0,
+    label: 'Level 0',
+    title: '生成AIをまだ活用できていない',
+    desc: 'まず環境を整え、AIになんでも問いかけてみるところからスタート',
+    training: 'プロンプトエンジニアリング / ガバナンス',
+    color: '#607D8B',
+    lightColor: '#ECEFF1',
+  },
+  {
+    level: 1,
+    label: 'Level 1',
+    title: '便利な使い方がまだイメージできていない',
+    desc: 'とにかく使う機会を増やし、欲しいものがすぐ作れることを意識する',
+    training: 'バイブコーディング研修',
+    color: '#1ABC9C',
+    lightColor: '#E8F8F5',
+  },
+  {
+    level: 2,
+    label: 'Level 2',
+    title: '使えるものを作りたい',
+    desc: '自身の業務やチームでAIの力をしっかり引き出したい',
+    training: '仕様駆動開発研修',
+    color: '#3498DB',
+    lightColor: '#EBF5FB',
+  },
+  {
+    level: 3,
+    label: 'Level 3',
+    title: 'AIエージェントツールがうまく扱えない',
+    desc: 'AIエージェントの能力を最大限引き出すための新しい考え方を学ぶ',
+    training: 'コンテキストエンジニアリング研修',
+    color: '#9B59B6',
+    lightColor: '#F5EEF8',
+  },
+  {
+    level: 4,
+    label: 'Level 4',
+    title: 'Claude Codeで実務効率を上げたい',
+    desc: 'Claude Codeの機能を使いこなして最大化できるようになる',
+    training: 'Claude Code 入門',
+    color: '#E67E22',
+    lightColor: '#FDF2E9',
+  },
+  {
+    level: 5,
+    label: 'Level 5',
+    title: '最高のAIパートナーを育てたい',
+    desc: '自身のClaude Codeを最高のパートナーとして仕上げられるようになる',
+    training: 'Claude Code 実践',
+    color: '#E74C3C',
+    lightColor: '#FDEDEC',
+  },
+];
+
+// ヘッダー
+function Header() {
+  return (
+    <header className="bg-gradient-to-br from-slate to-navy text-white">
+      <div className="max-w-6xl mx-auto px-6 py-16 md:py-24">
+        <p className="text-sm tracking-widest text-gray-300 mb-4 uppercase">Givery AI-Driven Development</p>
+        <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-6">
+          あなたに最適な<br/>AI駆動開発研修を見つける
+        </h1>
+        <p className="text-lg text-gray-300 max-w-2xl leading-relaxed mb-8">
+          やりたいことから逆算して学ぶ。レベル別・目的別に選べる実践型エンジニア研修のナビゲーター。
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a href="#diagnosis" className="inline-block bg-accent hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-colors">
+            診断を始める
+          </a>
+          <a href="#levels" className="inline-block bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-3 rounded-lg border border-white/30 transition-colors">
+            レベル一覧を見る
+          </a>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// 階段俯瞰図
+function StairOverview() {
+  return (
+    <section id="levels" className="py-16 md:py-24 bg-gray-50">
+      <div className="max-w-6xl mx-auto px-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate mb-3">AI駆動開発 レベルマップ</h2>
+        <p className="text-gray-500 mb-12 max-w-xl">あなたの現在地を確認し、次に進むべきステップを見つけてください。</p>
+
+        {/* 階段型レイアウト */}
+        <div className="space-y-0">
+          {LEVELS.map((lv, i) => {
+            const widthPercent = 50 + (i * 10);
+            return (
+              <div
+                key={lv.level}
+                className="step-card relative cursor-pointer"
+                style={{ marginLeft: `${i * 3}%` }}
+              >
+                <div
+                  className="flex items-stretch rounded-lg overflow-hidden shadow-sm border-l-4"
+                  style={{ borderLeftColor: lv.color }}
+                >
+                  {/* レベルバッジ */}
+                  <div
+                    className="flex items-center justify-center px-5 py-6 min-w-[100px] text-white font-bold text-sm"
+                    style={{ background: lv.color }}
+                  >
+                    <div className="text-center">
+                      <div className="text-xs opacity-80">LEVEL</div>
+                      <div className="text-2xl">{lv.level}</div>
+                    </div>
+                  </div>
+
+                  {/* コンテンツ */}
+                  <div className="flex-1 bg-white p-5">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-base">{lv.title}</h3>
+                        <p className="text-sm text-gray-500 mt-1">{lv.desc}</p>
+                      </div>
+                      <div
+                        className="inline-block px-4 py-1.5 rounded-full text-xs font-bold text-white whitespace-nowrap self-start"
+                        style={{ background: lv.color }}
+                      >
+                        {lv.training}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 矢印イメージ */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-400">レベルが上がるほど、人間の役割は「設計と判断」に集中していく</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// 診断コンポーネント
+function Diagnosis() {
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
+  const diagRef = useRef(null);
+
+  const startDiagnosis = () => {
+    setCurrentQuestion(1);
+    setResult(null);
+    setHistory([]);
+  };
+
+  const handleAnswer = (option) => {
+    setHistory(prev => [...prev, { questionId: currentQuestion, answer: option.label }]);
+
+    if (typeof option.next === 'string' && option.next.startsWith('result_')) {
+      setResult(RESULTS[option.next]);
+      setCurrentQuestion(null);
+    } else {
+      setCurrentQuestion(option.next);
+    }
+  };
+
+  const reset = () => {
+    setCurrentQuestion(null);
+    setResult(null);
+    setHistory([]);
+  };
+
+  const question = QUESTIONS.find(q => q.id === currentQuestion);
+
+  return (
+    <section id="diagnosis" className="py-16 md:py-24 bg-white" ref={diagRef}>
+      <div className="max-w-3xl mx-auto px-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate mb-3">あなたに合った研修を診断</h2>
+        <p className="text-gray-500 mb-10">いくつかの質問に答えるだけで、最適な研修が見つかります。</p>
+
+        {/* スタート画面 */}
+        {!currentQuestion && !result && (
+          <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <div className="text-6xl mb-6 text-gray-300">?</div>
+            <p className="text-gray-500 mb-8 text-lg">5つの質問であなたのレベルを診断します</p>
+            <button
+              onClick={startDiagnosis}
+              className="bg-accent hover:bg-orange-600 text-white font-bold px-10 py-4 rounded-xl text-lg transition-colors pulse-border"
+            >
+              診断スタート
+            </button>
+          </div>
+        )}
+
+        {/* 質問画面 */}
+        {question && (
+          <div className="fade-in">
+            {/* プログレス */}
+            <div className="flex items-center gap-3 mb-8">
+              <span className="text-sm text-gray-400">Q{question.id} / {QUESTIONS.length}</span>
+              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent rounded-full transition-all duration-500"
+                  style={{ width: `${(question.id / QUESTIONS.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <h3 className="text-xl font-bold text-slate mb-8 leading-relaxed">{question.text}</h3>
+
+            <div className="space-y-3">
+              {question.options.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleAnswer(opt)}
+                  className="diagnosis-option w-full text-left p-5 rounded-xl border-2 border-gray-200 hover:border-accent hover:bg-orange-50 transition-all"
+                >
+                  <span className="text-gray-800 font-medium">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={reset}
+              className="mt-6 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              最初からやり直す
+            </button>
+          </div>
+        )}
+
+        {/* 結果画面 */}
+        {result && (
+          <div className="result-card">
+            <div
+              className="rounded-2xl overflow-hidden shadow-lg"
+              style={{ borderTop: `4px solid ${result.color}` }}
+            >
+              <div className="p-8 bg-white">
+                <div className="flex items-center gap-4 mb-6">
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl"
+                    style={{ background: result.color }}
+                  >
+                    L{result.level}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">あなたの診断結果</p>
+                    <h3 className="text-xl font-bold text-slate">{result.title}</h3>
+                  </div>
+                </div>
+
+                <p className="text-gray-600 leading-relaxed mb-8">{result.message}</p>
+
+                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">おすすめ研修</h4>
+                <div className="space-y-3">
+                  {result.recommended.map(id => {
+                    const t = TRAININGS[id];
+                    return (
+                      <div
+                        key={id}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <div
+                          className="w-2 h-12 rounded-full flex-shrink-0"
+                          style={{ background: t.color }}
+                        />
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-800">{t.name}</p>
+                          <p className="text-sm text-gray-500">{t.duration} / {t.target}</p>
+                        </div>
+                        <a
+                          href="#catalog"
+                          className="text-sm font-bold px-4 py-2 rounded-lg text-white transition-colors"
+                          style={{ background: t.color }}
+                        >
+                          詳細
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-8 py-5 flex flex-wrap gap-4 justify-between items-center">
+                <button
+                  onClick={reset}
+                  className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                >
+                  もう一度診断する
+                </button>
+                <a
+                  href="https://tracks.run/seminar/sprint348/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-lg text-sm transition-colors"
+                >
+                  お問い合わせ・お申し込み
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// 研修カタログ
+function Catalog() {
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const mainTrainings = ['vibe', 'spec', 'context', 'ccBasic', 'ccAdvanced'];
+  const otherTrainings = ['uiux', 'governance', 'prompt', 'gemini'];
+
+  const categories = [
+    { id: 'all', label: 'すべて' },
+    { id: 'main', label: 'レベル別メイン研修' },
+    { id: 'other', label: 'その他の研修' },
+  ];
+
+  const getFiltered = () => {
+    if (selectedCategory === 'main') return mainTrainings.map(id => TRAININGS[id]);
+    if (selectedCategory === 'other') return otherTrainings.map(id => TRAININGS[id]);
+    return [...mainTrainings, ...otherTrainings].map(id => TRAININGS[id]);
+  };
+
+  return (
+    <section id="catalog" className="py-16 md:py-24 bg-gray-50">
+      <div className="max-w-6xl mx-auto px-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate mb-3">研修ラインナップ</h2>
+        <p className="text-gray-500 mb-8">レベル別・目的別に選べる実践型研修の全ラインナップ</p>
+
+        {/* フィルター */}
+        <div className="flex gap-2 mb-10 flex-wrap">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                selectedCategory === cat.id
+                  ? 'bg-slate text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* カード一覧 */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {getFiltered().map(t => (
+            <div
+              key={t.id}
+              className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden border border-gray-100"
+            >
+              <div className="p-1" style={{ background: t.color }} />
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-bold text-white"
+                    style={{ background: t.color }}
+                  >
+                    Lv.{t.level}
+                  </span>
+                  <span className="text-xs text-gray-400">{t.duration}</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">{t.name}</h3>
+                <p className="text-sm text-gray-500 mb-4 leading-relaxed">{t.description}</p>
+
+                <div className="mb-4">
+                  <p className="text-xs text-gray-400 mb-2 font-medium">研修ゴール</p>
+                  <ul className="space-y-1.5">
+                    {t.goals.map((g, i) => (
+                      <li key={i} className="text-xs text-gray-600 flex gap-2">
+                        <span className="text-xs mt-0.5 flex-shrink-0" style={{ color: t.color }}>&#9679;</span>
+                        <span>{g}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                  <span className="text-xs text-gray-400">{t.target}</span>
+                  <a
+                    href="https://tracks.run/seminar/sprint348/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold px-4 py-1.5 rounded-lg transition-colors text-white"
+                    style={{ background: t.color }}
+                  >
+                    詳細
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// CTA
+function CTA() {
+  return (
+    <section className="py-16 md:py-20 bg-gradient-to-br from-slate to-navy text-white">
+      <div className="max-w-3xl mx-auto px-6 text-center">
+        <h2 className="text-2xl md:text-3xl font-bold mb-4">AI駆動開発を組織のスタンダードに</h2>
+        <p className="text-gray-300 mb-8 leading-relaxed">
+          目的に応じた最適なレベルの選び方で、チーム全体の生産性を引き上げる。まずはお気軽にご相談ください。
+        </p>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <a
+            href="https://tracks.run/seminar/sprint348/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-accent hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-colors"
+          >
+            セミナーに申し込む
+          </a>
+          <a
+            href="#diagnosis"
+            className="bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-3 rounded-lg border border-white/30 transition-colors"
+          >
+            診断をやり直す
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// フッター
+function Footer() {
+  return (
+    <footer className="bg-gray-900 text-gray-400 py-8">
+      <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p className="text-sm">&copy; 2026 Givery, Inc. All rights reserved.</p>
+        <div className="flex gap-6 text-sm">
+          <a href="https://tracks.run/seminar/sprint348/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">セミナー申し込み</a>
+          <a href="https://givery.co.jp" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">会社概要</a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// メインApp
+function App() {
+  return (
+    <div>
+      <Header />
+      <StairOverview />
+      <Diagnosis />
+      <Catalog />
+      <CTA />
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
